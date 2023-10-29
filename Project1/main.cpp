@@ -3,6 +3,8 @@
 #include <fstream>
 #include <string>
 #include <Windows.h>
+#include <iomanip>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -12,14 +14,34 @@ vector<vector<int>> combos = {
     {0}, {1}, {2},
     {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1},
     {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0} };
-vector<vector<vector<int>>> nodes = { {{0, 0}, {0, 1}, {0, 2}} };
-vector<vector<int>> finish = { {3, 0}, {0, 4}, {4, 2} };
+vector<vector<vector<int>>> nodes;
+vector<vector<int>> finish;
 vector<vector<int>> map = {
     {0, 0, 0, 1, 0},
     {0, 0, 0, 1, 0},
-    {1, 1, 1, 1, 0},
+    {1, 1, 0, 1, 0},
     {0, 0, 0, 1, 0},
     {0, 0, 0, 0, 0} };
+vector<string> mothers;
+vector<string> daughters;
+
+template<int txt = 7, int bg = 0>
+ostream& color(ostream& text) {
+    HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hStdOut, (WORD)((bg << 4) | txt));
+    return text;
+}
+
+void printArray(vector<vector<int>> map) {
+    for (int i = 0; i < map.size(); i++)
+    {
+        for (int j = 0; j < map[0].size(); j++) {
+            if (map[i][j] == 1) { cout << setw(2) << color<4, 0> << map[i][j] << color<7, 0>; }
+            else { cout << setw(2) << color<7, 0> << map[i][j] << color<7, 0>; }
+        }
+        cout << endl;
+    }
+}
 
 string node2string(vector<vector<int>> node) {
     string node_s;
@@ -28,6 +50,22 @@ string node2string(vector<vector<int>> node) {
     }
     node_s = '"' + node_s + '"';
     return node_s;
+}
+
+int check_add(vector<vector<int>> node, string mother) {
+    if (node.size() == 3 && find(nodes.begin(), nodes.end(), node) == nodes.end()) {
+        nodes.push_back(node);
+        string branch = mother + " -> " + node2string(node);
+        file << branch << endl;
+        mothers.push_back(mother);
+        daughters.push_back(node2string(node));
+        if (node == finish) {
+            string color = node2string(node) + " [color=" + '"' + "red" + '"' + "]" + "\n" + mother + " [color=" + '"' + "red" + '"' + "]";
+            file << color << endl;
+            return 0;
+        }
+    }
+    return 1;
 }
 
 vector<vector<int>> move_1_agent(int agent, vector<int> step ,vector<vector<int>> pos) {
@@ -51,13 +89,9 @@ vector<vector<int>> move_1_agent(int agent, vector<int> step ,vector<vector<int>
 }
 
 int func() {
+    cout << "Search has begun." << endl;
     for (int q = 0; q < nodes.size(); q++) {
         vector<vector<int>> pos = nodes[q];
-        cout << "pos: ";
-        for (auto& p : pos) {
-            cout << "[" << p[0] << "," << p[1] << "] ";
-        }
-        cout << endl;
         string mother = node2string(pos);
         for (auto& combo : combos) {
             int agent = combo[0];
@@ -71,30 +105,13 @@ int func() {
                             int agent3 = combo[2];
                             for (auto& step3 : steps) {
                                 vector<vector<int>> node3 = move_1_agent(agent3, step3, node2);
-                                if (node3.size() == 3 && find(nodes.begin(), nodes.end(), node3) == nodes.end()) {
-                                    nodes.push_back(node3);
-                                    string branch = mother + " -> " + node2string(node3);
-                                    file << branch << endl;
-                                    if (node3 == finish) {return 0;}
-                                }
+                                if (check_add(node3, mother) == 0) {return 0;}
                             }
                         }
-                        else {
-                            if (node2.size() == 3 && find(nodes.begin(), nodes.end(), node2) == nodes.end()) {
-                                nodes.push_back(node2);
-                                string branch = mother + " -> " + node2string(node2);
-                                file << branch << endl;
-                                if (node2 == finish) {return 0;}
-                            }}
+                        else {if (check_add(node2, mother) == 0) {return 0;}}
                     }
                 }
-                else {
-                    if (node.size() == 3 && find(nodes.begin(), nodes.end(), node) == nodes.end()) {
-                        nodes.push_back(node);
-                        string branch = mother + " -> " + node2string(node);
-                        file << branch << endl;
-                        if (node == finish) {return 0;}
-                    }}
+                else {if (check_add(node, mother) == 0) {return 0;}}
             }
         }
     }
@@ -102,13 +119,49 @@ int func() {
 }
 
 void main() {
+    cout << "Map:" << endl;
+    printArray(map);
+    int sx1, sy1, sx2, sy2, sx3, sy3, tx1, ty1, tx2, ty2, tx3, ty3;
+    {
+        cout << "1 robot's position: ";
+        cin >> sx1 >> sy1;
+        cout << "1 robot's target: ";
+        cin >> tx1 >> ty1;
+        cout << "2 robot's position: ";
+        cin >> sx2 >> sy2;
+        cout << "2 robot's target: ";
+        cin >> tx2 >> ty2;
+        cout << "3 robot's position: ";
+        cin >> sx3 >> sy3;
+        cout << "3 robot's target: ";
+        cin >> tx3 >> ty3;
+        cout << "1)" << sx1 << " " << sy1 << " -> " << tx1 << " " << ty1 << ";  " << endl;
+        cout << "2)" << sx2 << " " << sy2 << " -> " << tx2 << " " << ty2 << ";  " << endl;
+        cout << "3)" << sx3 << " " << sy3 << " -> " << tx3 << " " << ty3 << ";  " << endl;
+    }
+    nodes = { {{sx1, sy1}, {sx2, sy2}, {sx3, sy3}} };
+    finish = { {{tx1, ty1}, {tx2, ty2}, {tx3, ty3}} };
     file.open("forgraph.dot");
     file << "digraph tree{" << endl;
     if (func() == 0) {
-        cout << "finish" << endl;
+        cout << color < 2, 0> << "Graph has been created. Path has been found." << color<7, 0> << endl;
+        string path = daughters[daughters.size() - 1] + " -> " + mothers[mothers.size() - 1];
+        string start = mothers[0];
+        string now = mothers[mothers.size() - 1];
+        while (start != now) {
+            vector <string> ::iterator it = find(daughters.begin(), daughters.end(), now);
+            int index = distance(daughters.begin(), it);
+            now = mothers[index];
+            string color_p = now + " [color=" + '"' + "red" + '"' + "]";
+            file << color_p << endl;
+            path += " -> " + now;
+        }
+        cout << path << endl;
+        string color_full_p = path + " [color=" + '"' + "red" + '"' + "]";
+        file << color_full_p << endl;
     }
     else {
-        cout << "path does not exist" << endl;
+        cout << color < 4, 0> << "Graph has been created, but Path does not exist." << color<7, 0> << endl;
     }
     file << "}" << endl;
     file.close();
