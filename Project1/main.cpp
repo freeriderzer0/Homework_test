@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <iomanip>
 #include <stdlib.h>
+#include <ctime>
 
 using namespace std;
 
@@ -17,11 +18,16 @@ vector<vector<int>> combos = {
 vector<vector<vector<int>>> nodes;
 vector<vector<int>> finish;
 vector<vector<int>> map = {
-    {0, 0, 0, 1, 0},
-    {0, 0, 0, 1, 0},
-    {1, 1, 0, 1, 0},
-    {0, 0, 0, 1, 0},
-    {0, 0, 0, 0, 0} };
+    {0, 0, 0, 1, 1, 0, 0, 0, 0, 0},
+    {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
+    {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
+    {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
+    {1, 1, 0, 1, 1, 0, 0, 1, 1, 0},
+    {1, 1, 0, 1, 1, 0, 0, 1, 1, 0},
+    {1, 1, 0, 1, 1, 0, 0, 1, 1, 0},
+    {1, 1, 0, 1, 1, 0, 0, 1, 1, 0},
+    {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0} };
 vector<string> mothers;
 vector<string> daughters;
 
@@ -72,7 +78,7 @@ vector<vector<int>> move_1_agent(int agent, vector<int> step ,vector<vector<int>
     vector<vector<int>> node;
     for (int i = 0; i < pos.size(); i++) {
         if (i == agent) {
-            if (-1 < (pos[i][0] + step[0]) && (pos[i][0] + step[0]) < 5 && -1 < (pos[i][1] + step[1]) && (pos[i][1] + step[1]) < 5 &&
+            if (-1 < (pos[i][0] + step[0]) && (pos[i][0] + step[0]) < map.size() && -1 < (pos[i][1] + step[1]) && (pos[i][1] + step[1]) < map.size() &&
                 map[pos[i][0] + step[0]][pos[i][1] + step[1]] == 0 &&
                 find(pos.begin(), pos.end(), vector<int>{pos[i][0] + step[0], pos[i][1] + step[1]}) == pos.end()) {
                 node.push_back({ pos[i][0] + step[0], pos[i][1] + step[1] });
@@ -141,6 +147,7 @@ void main() {
     }
     nodes = { {{sx1, sy1}, {sx2, sy2}, {sx3, sy3}} };
     finish = { {{tx1, ty1}, {tx2, ty2}, {tx3, ty3}} };
+    double st_time = clock();
     file.open("forgraph.dot");
     file << "digraph tree{" << endl;
     if (func() == 0) {
@@ -166,4 +173,6 @@ void main() {
     file << "}" << endl;
     file.close();
     system("dot -Tpdf -O forgraph.dot");
+    double e_time = clock();
+    cout << "Time: " << to_string((e_time - st_time)/1000) << endl;
 }
