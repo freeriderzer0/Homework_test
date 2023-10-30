@@ -6,17 +6,23 @@
 #include <iomanip>
 #include <stdlib.h>
 #include <ctime>
+#include <algorithm>
+#include <utility>
 
 using namespace std;
 
 ofstream file;
 vector<vector<int>> steps = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+vector<vector<int>> steps_pf = { {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1} };
 vector<vector<int>> combos = {
     {0}, {1}, {2},
     {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1},
     {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0} };
+
 vector<vector<vector<int>>> nodes;
+vector<vector<vector<int>>> nodes_pf;
 vector<vector<int>> finish;
+
 vector<vector<int>> map = {
     {0, 0, 0, 1, 1, 0, 0, 0, 0, 0},
     {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
@@ -28,6 +34,13 @@ vector<vector<int>> map = {
     {1, 1, 0, 1, 1, 0, 0, 1, 1, 0},
     {0, 0, 0, 1, 1, 0, 0, 1, 1, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0} };
+//vector<vector<int>> map = {
+//    {0, 0, 0, 0, 0} ,
+//    {0, 0, 0, 0, 0},
+//    {1, 1, 0, 1, 1},
+//    {0, 0, 0, 0, 0},
+//    {0, 0, 0, 0, 0} };
+
 vector<string> mothers;
 vector<string> daughters;
 
@@ -56,6 +69,60 @@ string node2string(vector<vector<int>> node) {
     }
     node_s = '"' + node_s + '"';
     return node_s;
+}
+
+int heuristic(int a, vector<vector<int>> sel_node, vector<int> step) {
+    int h = min(abs(finish[a][0] - sel_node[a][0] - step[0]), abs(finish[a][1] - sel_node[a][1] - step[1])) + abs(abs(finish[a][0] - sel_node[a][0] - step[0]) - abs(finish[a][1] - sel_node[a][1] - step[1]));
+    return h;
+}
+
+int p_f() {
+    cout << "Plows potential fields." << endl;
+    for (int l = 0; l < nodes_pf.size(); l++) {
+        vector<vector<int>> sel_node = nodes_pf[l];
+        for (int ai = 0; ai < 3; ai++) {
+            vector<vector<int>> new_node;
+            vector<int> a1h;
+            for (auto stepp : steps_pf) {
+                if (-1 < (sel_node[ai][0] + stepp[0]) && (sel_node[ai][0] + stepp[0]) < map.size() && -1 < (sel_node[ai][1] + stepp[1]) && (sel_node[ai][1] + stepp[1]) < map.size() &&
+                    map[sel_node[ai][0] + stepp[0]][sel_node[ai][1] + stepp[1]] == 0 &&
+                    find(sel_node.begin(), sel_node.end(), vector<int>{sel_node[ai][0] + stepp[0], sel_node[ai][1] + stepp[1]}) == sel_node.end()) {
+                    a1h.push_back(heuristic(ai, sel_node, stepp));
+                }
+                else {
+                    a1h.push_back(100);
+                }
+            }
+            for (int p = 0; p < 3; p++) {
+                if (ai == p) {
+                    int ma1h = *min_element(a1h.begin(), a1h.end());
+                    vector<int> ::iterator itr = find(a1h.begin(), a1h.end(), ma1h);
+                    _int64 index = distance(a1h.begin(), itr);
+                    vector<int> ch_st = steps_pf[index];
+                    if (heuristic(ai, sel_node, { 0, 0 }) >= heuristic(ai, sel_node, ch_st)) {
+                        new_node.push_back({ sel_node[p][0] + ch_st[0], sel_node[p][1] + ch_st[1] });
+                    }
+                    else {
+                        new_node.push_back(sel_node[p]);
+                    }
+                }
+                else {
+                    new_node.push_back(sel_node[p]);
+                }
+            }
+            sel_node = new_node;
+        }
+        cout << node2string(sel_node) << endl;
+        if (sel_node == finish) {
+            return 0;
+        }
+        if (sel_node != nodes_pf[nodes_pf.size() - 1]) {
+            nodes_pf.push_back(sel_node);
+        }
+        else {
+            return 1;
+        }
+    }
 }
 
 int check_add(vector<vector<int>> node, string mother) {
@@ -124,7 +191,7 @@ int func() {
     return 1;
 }
 
-void main() {
+int main() {
     cout << "Map:" << endl;
     printArray(map);
     int sx1, sy1, sx2, sy2, sx3, sy3, tx1, ty1, tx2, ty2, tx3, ty3;
@@ -146,7 +213,9 @@ void main() {
         cout << "3)" << sx3 << " " << sy3 << " -> " << tx3 << " " << ty3 << ";  " << endl;
     }
     nodes = { {{sx1, sy1}, {sx2, sy2}, {sx3, sy3}} };
+    nodes_pf = { {{sx1, sy1}, {sx2, sy2}, {sx3, sy3}} };
     finish = { {{tx1, ty1}, {tx2, ty2}, {tx3, ty3}} };
+
     double st_time = clock();
     file.open("forgraph.dot");
     file << "digraph tree{" << endl;
@@ -157,7 +226,7 @@ void main() {
         string now = mothers[mothers.size() - 1];
         while (start != now) {
             vector <string> ::iterator it = find(daughters.begin(), daughters.end(), now);
-            int index = distance(daughters.begin(), it);
+            _int64 index = distance(daughters.begin(), it);
             now = mothers[index];
             string color_p = now + " [color=" + '"' + "red" + '"' + "]";
             file << color_p << endl;
@@ -175,4 +244,17 @@ void main() {
     system("dot -Tpdf -O forgraph.dot");
     double e_time = clock();
     cout << "Time: " << to_string((e_time - st_time)/1000) << endl;
+
+    st_time = clock();
+    if (p_f() == 0) {
+        cout << color < 2, 0> << "Path has been found." << color<7, 0> << endl;
+    }
+    else
+    {
+        cout << color < 4, 0> << "Path is missing or the agent is in a local minimum." << color<7, 0> << endl;
+    }
+    e_time = clock();
+    cout << "Time: " << to_string((e_time - st_time) / 1000) << endl;
+
+    return 0;
 }
